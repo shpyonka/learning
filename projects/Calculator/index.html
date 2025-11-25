@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Простой и удобный калькулятор">
+<title>Калькулятор</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .calculator {
+    background: #fff;
+    padding: 25px 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    width: 320px;
+  }
+  .display {
+    background: #222;
+    color: #fff;
+    font-size: 2rem;
+    padding: 15px 20px;
+    border-radius: 10px;
+    text-align: right;
+    margin-bottom: 20px;
+    min-height: 50px;
+    user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+  }
+  button {
+    padding: 15px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 10px;
+    background: #e2e6ea;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  button.operator {
+    background: #ff9500;
+    color: white;
+  }
+  button.zero {
+    grid-column: span 2;
+  }
+  button:hover {
+    background: #d0d4d8;
+  }
+  button.operator:hover {
+    background: #e08900;
+  }
+  button:active {
+    transform: scale(0.95);
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div id="display" class="display">0</div>
+  <div class="buttons">
+    <button class="operator" data-action="clear">C</button>
+    <button class="operator" data-action="backspace">←</button>
+    <button class="operator" data-action="percent">%</button>
+    <button class="operator" data-action="divide">÷</button>
+
+    <button data-number="7">7</button>
+    <button data-number="8">8</button>
+    <button data-number="9">9</button>
+    <button class="operator" data-action="multiply">×</button>
+
+    <button data-number="4">4</button>
+    <button data-number="5">5</button>
+    <button data-number="6">6</button>
+    <button class="operator" data-action="subtract">−</button>
+
+    <button data-number="1">1</button>
+    <button data-number="2">2</button>
+    <button data-number="3">3</button>
+    <button class="operator" data-action="add">+</button>
+
+    <button class="zero" data-number="0">0</button>
+    <button data-number=".">.</button>
+    <button class="operator" data-action="equals">=</button>
+  </div>
+</div>
+
+<script>
+  const display = document.getElementById('display');
+  let currentInput = '0';
+  let previousInput = null;
+  let operator = null;
+  let resultDisplayed = false;
+
+  function updateDisplay() {
+    // Ограничение длины числа
+    if (currentInput.length > 12) {
+      display.textContent = parseFloat(currentInput).toExponential(6);
+    } else {
+      display.textContent = currentInput;
+    }
+  }
+
+  function calculate(a, b, op) {
+    a = parseFloat(a);
+    b = parseFloat(b);
+    switch (op) {
+      case 'add': return a + b;
+      case 'subtract': return a - b;
+      case 'multiply': return a * b;
+      case 'divide': return b === 0 ? 'Error' : a / b;
+      default: return b;
+    }
+  }
+
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const number = btn.getAttribute('data-number');
+      const action = btn.getAttribute('data-action');
+
+      // Обработка ошибок
+      if (currentInput === 'Error' && action !== 'clear') {
+        return;
+      }
+
+      if (number !== null) {
+        if (resultDisplayed) {
+          currentInput = number === '.' ? '0.' : number;
+          resultDisplayed = false;
+        } else {
+          if (number === '.' && currentInput.includes('.')) return;
+          if (currentInput === '0' && number !== '.') {
+            currentInput = number;
+          } else {
+            currentInput += number;
+          }
+        }
+        updateDisplay();
+        return;
+      }
+
+      if (action) {
+        if (action === 'clear') {
+          currentInput = '0';
+          previousInput = null;
+          operator = null;
+          updateDisplay();
+          return;
+        }
+
+        if (action === 'backspace') {
+          if (resultDisplayed) {
+            currentInput = '0';
+            resultDisplayed = false;
+          } else {
+            currentInput = currentInput.length > 1 ? currentInput.slice(0, -1) : '0';
+          }
+          updateDisplay();
+          return;
+        }
+
+        if (action === 'percent') {
+          currentInput = (parseFloat(currentInput) / 100).toString();
+          updateDisplay();
+          return;
+        }
+
+        if (action === 'equals') {
+          if (operator && previousInput != null) {
+            const res = calculate(previousInput, currentInput, operator);
+            currentInput = res.toString();
+            previousInput = null;
+            operator = null;
+            resultDisplayed = true;
+            updateDisplay();
+          }
+          return;
+        }
+
+        // Обработка операторов
+        if (operator && previousInput != null && !resultDisplayed) {
+          const res = calculate(previousInput, currentInput, operator);
+          currentInput = res.toString();
+          previousInput = currentInput;
+        } else {
+          previousInput = currentInput;
+        }
+
+        operator = action;
+        currentInput = '0';
+        resultDisplayed = false;
+        updateDisplay();
+      }
+    });
+  });
+
+  // Поддержка клавиатуры
+  document.addEventListener('keydown', (e) => {
+    const key = e.key;
+    
+    if (key >= '0' && key <= '9') {
+      document.querySelector(`button[data-number="${key}"]`).click();
+    } else if (key === '.') {
+      document.querySelector('button[data-number="."]').click();
+    } else if (key === '+') {
+      document.querySelector('button[data-action="add"]').click();
+    } else if (key === '-') {
+      document.querySelector('button[data-action="subtract"]').click();
+    } else if (key === '*') {
+      document.querySelector('button[data-action="multiply"]').click();
+    } else if (key === '/') {
+      e.preventDefault();
+      document.querySelector('button[data-action="divide"]').click();
+    } else if (key === 'Enter' || key === '=') {
+      document.querySelector('button[data-action="equals"]').click();
+    } else if (key === 'Escape') {
+      document.querySelector('button[data-action="clear"]').click();
+    } else if (key === 'Backspace') {
+      document.querySelector('button[data-action="backspace"]').click();
+    } else if (key === '%') {
+      document.querySelector('button[data-action="percent"]').click();
+    }
+  });
+</script>
+</body>
+</html>
